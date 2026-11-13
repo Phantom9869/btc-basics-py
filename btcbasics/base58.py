@@ -1,10 +1,11 @@
-from .hashes import sha256d
+from .hashes import _as_bytes, sha256d
 
 ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 _INDEX = {c: i for i, c in enumerate(ALPHABET)}
 
 
 def b58encode(data: bytes) -> str:
+    data = _as_bytes(data, "b58encode")
     num = int.from_bytes(data, "big")
     out = []
     while num > 0:
@@ -18,6 +19,8 @@ def b58encode(data: bytes) -> str:
 
 
 def b58decode(s: str) -> bytes:
+    if not isinstance(s, str):
+        raise TypeError(f"b58decode() expected str, got {type(s).__name__}")
     # Bitcoin Core's DecodeBase58 ignores leading and trailing spaces so
     # a pasted address with a newline still decodes. Spaces in the middle
     # stay invalid.
@@ -34,11 +37,14 @@ def b58decode(s: str) -> bytes:
 
 
 def b58encode_check(payload: bytes) -> str:
+    payload = _as_bytes(payload, "b58encode_check")
     checksum = sha256d(payload)[:4]
     return b58encode(payload + checksum)
 
 
 def b58decode_check(s: str) -> bytes:
+    if not isinstance(s, str):
+        raise TypeError(f"b58decode_check() expected str, got {type(s).__name__}")
     raw = b58decode(s)
     if len(raw) < 4:
         raise ValueError("too short for base58check")

@@ -81,6 +81,11 @@ def _compress(state, block):
 
 
 def digest(data: bytes) -> bytes:
+    if isinstance(data, memoryview):
+        data = data.tobytes()
+    if not isinstance(data, (bytes, bytearray)):
+        raise TypeError(f"digest() expected bytes-like, got {type(data).__name__}")
+    data = bytes(data)
     state = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0]
     bit_len = (len(data) * 8) & 0xFFFFFFFFFFFFFFFF
     padded = data + b"\x80" + b"\x00" * ((55 - len(data)) % 64) + struct.pack("<Q", bit_len)

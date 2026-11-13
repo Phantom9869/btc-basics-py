@@ -57,3 +57,19 @@ def test_fallback_used_when_hashlib_lacks_ripemd(monkeypatch):
 
     monkeypatch.setattr(hashlib, "new", no_ripemd)
     assert hash160(b"abc").hex() == ripemd160.digest(sha256(b"abc")).hex()
+
+
+def test_hashes_accept_bytes_like():
+    expected = sha256(b"abc")
+    assert sha256(bytearray(b"abc")) == expected
+    assert sha256(memoryview(b"abc")) == expected
+    assert hash160(bytearray(b"abc")) == hash160(b"abc")
+
+
+def test_hashes_reject_str():
+    with pytest.raises(TypeError, match=r"sha256\(\) expected bytes-like"):
+        sha256("abc")
+    with pytest.raises(TypeError, match=r"hash160\(\) expected bytes-like"):
+        hash160("abc")
+    with pytest.raises(TypeError, match=r"digest\(\) expected bytes-like"):
+        ripemd160.digest("abc")

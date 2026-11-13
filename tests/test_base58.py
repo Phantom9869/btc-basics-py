@@ -71,3 +71,22 @@ def test_decode_rejects_internal_whitespace():
 def test_invalid_character_includes_position():
     with pytest.raises(ValueError, match="at position 1"):
         b58decode("1O")
+
+
+def test_encode_accepts_bytes_like():
+    data = b"\x00\x00\x01\x02"
+    assert b58encode(bytearray(data)) == b58encode(data)
+    assert b58encode(memoryview(data)) == b58encode(data)
+    assert b58decode(b58encode(memoryview(data))) == data
+
+
+def test_encode_rejects_str():
+    with pytest.raises(TypeError, match=r"b58encode\(\) expected bytes-like"):
+        b58encode("2g")
+
+
+def test_decode_rejects_non_str():
+    with pytest.raises(TypeError, match=r"b58decode\(\) expected str"):
+        b58decode(b"2g")
+    with pytest.raises(TypeError, match=r"b58decode_check\(\) expected str"):
+        b58decode_check(None)
