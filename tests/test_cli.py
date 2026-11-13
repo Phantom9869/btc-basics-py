@@ -1,3 +1,5 @@
+import pytest
+
 from btcbasics.__main__ import main
 
 
@@ -25,3 +27,23 @@ def test_hash(capsys):
 
 def test_version_out_of_range(capsys):
     assert main(["encode", "00", "--version", "256"]) == 1
+
+
+def test_hash_accepts_0x_prefix(capsys):
+    assert main(["hash", "sha256", "0x616263"]) == 0
+    assert capsys.readouterr().out.strip().startswith("ba7816bf")
+
+
+def test_hash_accepts_uppercase_0x_and_spaces(capsys):
+    assert main(["hash", "sha256", "  0X61 62 63  "]) == 0
+    assert capsys.readouterr().out.strip().startswith("ba7816bf")
+
+
+def test_encode_payload_accepts_0x_prefix(capsys):
+    assert main(["encode", "0x62e907b15cbf27d5425399ebf6f0fb50ebb88f18", "--version", "0x00"]) == 0
+    assert capsys.readouterr().out.strip() == "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+
+
+def test_invalid_hex_still_rejected():
+    with pytest.raises(SystemExit):
+        main(["hash", "sha256", "0xzz"])

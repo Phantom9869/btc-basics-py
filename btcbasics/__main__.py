@@ -13,8 +13,13 @@ VERSIONS = {
 
 
 def parse_hex(text):
+    # Allow the 0x prefix already accepted by --version, and ignore
+    # surrounding whitespace from pasted values.
+    raw = text.strip()
+    if raw[:2].lower() == "0x":
+        raw = raw[2:]
     try:
-        return bytes.fromhex(text)
+        return bytes.fromhex(raw)
     except ValueError:
         raise argparse.ArgumentTypeError(f"not valid hex: {text}")
 
