@@ -47,3 +47,33 @@ def test_encode_payload_accepts_0x_prefix(capsys):
 def test_invalid_hex_still_rejected():
     with pytest.raises(SystemExit):
         main(["hash", "sha256", "0xzz"])
+
+
+WIF_UNCOMPRESSED = "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ"
+WIF_PRIV = "0c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d"
+
+
+def test_decode_wif(capsys):
+    assert main(["decode", WIF_UNCOMPRESSED]) == 0
+    out = capsys.readouterr().out
+    assert "0x80 (mainnet WIF)" in out
+    assert f"private key: {WIF_PRIV}" in out
+    assert "compressed: no" in out
+
+
+def test_wif_encode_uncompressed(capsys):
+    assert main(["wif", "encode", WIF_PRIV, "--uncompressed"]) == 0
+    assert capsys.readouterr().out.strip() == WIF_UNCOMPRESSED
+
+
+def test_wif_decode(capsys):
+    assert main(["wif", "decode", WIF_UNCOMPRESSED]) == 0
+    out = capsys.readouterr().out
+    assert f"private key: {WIF_PRIV}" in out
+    assert "compressed: no" in out
+    assert "testnet: no" in out
+
+
+def test_wif_encode_rejects_short_key(capsys):
+    assert main(["wif", "encode", "00"]) == 1
+    assert "32 bytes" in capsys.readouterr().err
