@@ -56,3 +56,18 @@ def test_bad_checksum():
 def test_too_short():
     with pytest.raises(ValueError):
         b58decode_check("1")
+
+def test_decode_strips_surrounding_whitespace():
+    addr = "  \n" + GENESIS_ADDRESS + "\t\r\n  "
+    payload = bytes.fromhex("00" + GENESIS_HASH160)
+    assert b58decode_check(addr) == payload
+
+
+def test_decode_rejects_internal_whitespace():
+    with pytest.raises(ValueError, match="invalid base58 character"):
+        b58decode("2g 2g")
+
+
+def test_invalid_character_includes_position():
+    with pytest.raises(ValueError, match="at position 1"):
+        b58decode("1O")

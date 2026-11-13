@@ -18,10 +18,14 @@ def b58encode(data: bytes) -> str:
 
 
 def b58decode(s: str) -> bytes:
+    # Bitcoin Core's DecodeBase58 ignores leading and trailing spaces so
+    # a pasted address with a newline still decodes. Spaces in the middle
+    # stay invalid.
+    s = s.strip()
     num = 0
-    for c in s:
+    for i, c in enumerate(s):
         if c not in _INDEX:
-            raise ValueError(f"invalid base58 character: {c!r}")
+            raise ValueError(f"invalid base58 character: {c!r} at position {i}")
         num = num * 58 + _INDEX[c]
 
     body = num.to_bytes((num.bit_length() + 7) // 8, "big") if num else b""
