@@ -77,3 +77,19 @@ def test_wif_decode(capsys):
 def test_wif_encode_rejects_short_key(capsys):
     assert main(["wif", "encode", "00"]) == 1
     assert "32 bytes" in capsys.readouterr().err
+
+
+def test_address_p2pkh_from_hash(capsys):
+    assert main(["address", "p2pkh", "62e907b15cbf27d5425399ebf6f0fb50ebb88f18"]) == 0
+    assert capsys.readouterr().out.strip() == "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+
+
+def test_address_p2sh_testnet(capsys):
+    assert main(["address", "p2sh", "f815b036d9bbbce5e9f2a00abd1bf3dc91e95510", "--testnet"]) == 0
+    addr = capsys.readouterr().out.strip()
+    assert addr.startswith("2")
+
+
+def test_address_rejects_bad_length(capsys):
+    assert main(["address", "p2pkh", "00"]) == 1
+    assert "20-byte HASH160" in capsys.readouterr().err

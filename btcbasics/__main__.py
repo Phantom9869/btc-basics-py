@@ -1,6 +1,7 @@
 import argparse
 import sys
 
+from .address import p2pkh_address, p2sh_address
 from .base58 import b58decode_check, b58encode_check
 from .hashes import hash160, sha256, sha256d
 from .wif import MAINNET_WIF, TESTNET_WIF, decode_wif, encode_wif
@@ -76,6 +77,18 @@ def cmd_decode(args):
     return 0
 
 
+def cmd_address(args):
+    try:
+        if args.kind == "p2pkh":
+            print(p2pkh_address(args.data, testnet=args.testnet))
+        else:
+            print(p2sh_address(args.data, testnet=args.testnet))
+    except ValueError as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def cmd_wif_encode(args):
     try:
         print(encode_wif(args.private_key, compressed=not args.uncompressed, testnet=args.testnet))
@@ -115,6 +128,13 @@ def main(argv=None):
     p = sub.add_parser("decode", help="decode and validate a base58check string")
     p.add_argument("address")
     p.set_defaults(func=cmd_decode)
+
+    p = sub.add_parser("address", help="build a P2PKH or P2SH address")
+    p.add_argument("kind", choices=["p2pkh", "p2sh"])
+    p.add_argument("data", type=parse_hex,
+                   help="HASH160, or for p2pkh a 33/65-byte public key")
+    p.add_argument("--testnet", action="store_true")
+    p.set_defaults(func=cmd_address)
 
     p = sub.add_parser("wif", help="encode or decode a Wallet Import Format key")
     wif_sub = p.add_subparsers(dest="wif_command", required=True)
