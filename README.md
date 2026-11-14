@@ -57,6 +57,9 @@ pip install pytest
 pytest
 ```
 
+Pushes and pull requests also run that suite on Python 3.9, 3.11 and 3.13
+via GitHub Actions.
+
 The tests use published vectors, including the genesis block hash, the
 address it paid to, a well-known WIF key, and the official BIP 173
 Bech32 / SegWit v0 addresses.
