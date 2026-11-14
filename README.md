@@ -24,6 +24,7 @@ python -m btcbasics decode 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
 python -m btcbasics decode bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
 python -m btcbasics wif encode 0c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d --uncompressed
 python -m btcbasics encode 62e907b15cbf27d5425399ebf6f0fb50ebb88f18 --version 0x00
+python -m btcbasics --json decode bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
 ```
 
 Hex arguments accept a `0x` prefix and surrounding whitespace. `decode`
@@ -35,6 +36,10 @@ the checksum.
 `address p2sh` takes a 20-byte script hash. `address p2wpkh` takes a
 20-byte HASH160 or a 33-byte compressed public key. `address p2wsh`
 takes a 32-byte SHA-256 script hash. All of them accept `--testnet`.
+
+`--json` prints a single JSON object instead of text, useful when calling
+the CLI from a script. The flag can go before or after the subcommand.
+Errors still go to stderr as text.
 
 The same helpers are available as a library:
 

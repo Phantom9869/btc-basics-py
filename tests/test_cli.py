@@ -122,3 +122,57 @@ def test_decode_segwit(capsys):
 def test_decode_segwit_invalid(capsys):
     assert main(["decode", "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5"]) == 1
     assert "checksum" in capsys.readouterr().err
+
+
+import json
+
+
+def test_json_hash(capsys):
+    assert main(["--json", "hash", "sha256", "616263"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["algo"] == "sha256"
+    assert data["digest"].startswith("ba7816bf")
+
+
+def test_json_flag_after_subcommand(capsys):
+    assert main(["hash", "--json", "sha256", "616263"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["digest"].startswith("ba7816bf")
+
+
+def test_json_decode_p2pkh(capsys):
+    assert main(["--json", "decode", "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data == {
+        "type": "mainnet P2PKH",
+        "version": 0,
+        "payload": "62e907b15cbf27d5425399ebf6f0fb50ebb88f18",
+    }
+
+
+def test_json_decode_segwit(capsys):
+    assert main(["--json", "decode", P2WPKH]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["type"] == "mainnet P2WPKH"
+    assert data["hrp"] == "bc"
+    assert data["witness_version"] == 0
+    assert data["program"] == P2WPKH_HASH
+
+
+def test_json_address_and_wif(capsys):
+    assert main(["--json", "address", "p2pkh", "62e907b15cbf27d5425399ebf6f0fb50ebb88f18"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["address"] == "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+    assert data["type"] == "p2pkh"
+    assert data["testnet"] is False
+
+    assert main(["--json", "wif", "decode", WIF_UNCOMPRESSED]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data == {"private_key": WIF_PRIV, "compressed": False, "testnet": False}
+
+
+def test_json_does_not_change_error_output(capsys):
+    assert main(["--json", "decode", "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNb"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "bad checksum" in captured.err
