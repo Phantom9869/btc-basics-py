@@ -4,7 +4,7 @@ from typing import NamedTuple
 
 from .base58 import b58encode_check
 from .bech32 import bech32_decode, bech32_encode, convertbits
-from .hashes import _as_bytes, hash160
+from .hashes import BytesLike, _as_bytes, hash160
 
 MAINNET_P2PKH = 0x00
 MAINNET_P2SH = 0x05
@@ -21,7 +21,7 @@ class SegwitAddress(NamedTuple):
     program: bytes
 
 
-def _hash160_from_pubkey_or_hash(data: bytes, name: str) -> bytes:
+def _hash160_from_pubkey_or_hash(data: BytesLike, name: str) -> bytes:
     data = _as_bytes(data, name)
     if len(data) == 20:
         return data
@@ -36,13 +36,13 @@ def _hash160_from_pubkey_or_hash(data: bytes, name: str) -> bytes:
     raise ValueError(f"{name}() expects a 20-byte HASH160 or a 33/65-byte public key")
 
 
-def p2pkh_address(data: bytes, *, testnet: bool = False) -> str:
+def p2pkh_address(data: BytesLike, *, testnet: bool = False) -> str:
     digest = _hash160_from_pubkey_or_hash(data, "p2pkh_address")
     version = TESTNET_P2PKH if testnet else MAINNET_P2PKH
     return b58encode_check(bytes([version]) + digest)
 
 
-def p2sh_address(script_hash: bytes, *, testnet: bool = False) -> str:
+def p2sh_address(script_hash: BytesLike, *, testnet: bool = False) -> str:
     script_hash = _as_bytes(script_hash, "p2sh_address")
     if len(script_hash) != 20:
         raise ValueError("p2sh_address() expects a 20-byte script hash")
@@ -58,7 +58,7 @@ def _encode_segwit_v0(program: bytes, *, testnet: bool) -> str:
     return bech32_encode(hrp, [0] + five)
 
 
-def p2wpkh_address(data: bytes, *, testnet: bool = False) -> str:
+def p2wpkh_address(data: BytesLike, *, testnet: bool = False) -> str:
     """Build a native SegWit v0 P2WPKH address (bc1q... / tb1q...).
 
     Accepts a 20-byte HASH160 or a 33-byte compressed public key.
@@ -78,7 +78,7 @@ def p2wpkh_address(data: bytes, *, testnet: bool = False) -> str:
     return _encode_segwit_v0(program, testnet=testnet)
 
 
-def p2wsh_address(script_hash: bytes, *, testnet: bool = False) -> str:
+def p2wsh_address(script_hash: BytesLike, *, testnet: bool = False) -> str:
     """Build a native SegWit v0 P2WSH address from a 32-byte SHA-256 script hash."""
     script_hash = _as_bytes(script_hash, "p2wsh_address")
     if len(script_hash) != 32:

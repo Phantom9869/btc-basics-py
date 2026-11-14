@@ -1,4 +1,5 @@
 import hashlib
+from pathlib import Path
 
 import pytest
 
@@ -73,3 +74,10 @@ def test_hashes_reject_str():
         hash160("abc")
     with pytest.raises(TypeError, match=r"digest\(\) expected bytes-like"):
         ripemd160.digest("abc")
+
+
+def test_package_is_typed():
+    import btcbasics
+
+    marker = Path(btcbasics.__file__).with_name("py.typed")
+    assert marker.is_file()

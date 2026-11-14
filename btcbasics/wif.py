@@ -3,7 +3,7 @@
 from typing import NamedTuple
 
 from .base58 import b58decode_check, b58encode_check
-from .hashes import _as_bytes
+from .hashes import BytesLike, _as_bytes
 
 MAINNET_WIF = 0x80
 TESTNET_WIF = 0xEF
@@ -15,7 +15,7 @@ class WIFKey(NamedTuple):
     testnet: bool
 
 
-def encode_wif(private_key: bytes, *, compressed: bool = True, testnet: bool = False) -> str:
+def encode_wif(private_key: BytesLike, *, compressed: bool = True, testnet: bool = False) -> str:
     private_key = _as_bytes(private_key, "encode_wif")
     if len(private_key) != 32:
         raise ValueError("private key must be 32 bytes")

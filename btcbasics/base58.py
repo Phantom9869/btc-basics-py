@@ -1,10 +1,10 @@
-from .hashes import _as_bytes, sha256d
+from .hashes import BytesLike, _as_bytes, sha256d
 
 ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 _INDEX = {c: i for i, c in enumerate(ALPHABET)}
 
 
-def b58encode(data: bytes) -> str:
+def b58encode(data: BytesLike) -> str:
     data = _as_bytes(data, "b58encode")
     num = int.from_bytes(data, "big")
     out = []
@@ -36,7 +36,7 @@ def b58decode(s: str) -> bytes:
     return b"\x00" * zeros + body
 
 
-def b58encode_check(payload: bytes) -> str:
+def b58encode_check(payload: BytesLike) -> str:
     payload = _as_bytes(payload, "b58encode_check")
     checksum = sha256d(payload)[:4]
     return b58encode(payload + checksum)

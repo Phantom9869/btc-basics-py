@@ -5,10 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "btcbasics"
 version = "0.1.0"
-description = "SHA-256d, HASH160 and Base58Check address encoding in plain Python"
+description = "SHA-256d, HASH160, Base58Check, Bech32 and Bitcoin address helpers in plain Python"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
+classifiers = ["Typing :: Typed"]
 
 [project.scripts]
 btcbasics = "btcbasics.__main__:main"
@@ -18,6 +19,9 @@ test = ["pytest"]
 
 [tool.setuptools.packages.find]
 include = ["btcbasics"]
+
+[tool.setuptools.package-data]
+btcbasics = ["py.typed"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

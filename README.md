@@ -47,6 +47,9 @@ The same helpers are available as a library:
 from btcbasics import p2pkh_address, p2wpkh_address, encode_wif, sha256d
 ```
 
+The package ships a `py.typed` marker so type checkers can use the
+annotations on those helpers.
+
 ## Tests
 
 ```

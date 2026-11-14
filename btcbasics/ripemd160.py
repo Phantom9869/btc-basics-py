@@ -1,6 +1,11 @@
+from typing import Union
+
 """Pure Python RIPEMD-160, used only when hashlib doesn't provide it."""
 
 import struct
+from typing import Union
+
+BytesLike = Union[bytes, bytearray, memoryview]
 
 # Message word order for each of the 80 steps, left and right lines.
 _R_LEFT = [
@@ -80,7 +85,7 @@ def _compress(state, block):
     ]
 
 
-def digest(data: bytes) -> bytes:
+def digest(data: BytesLike) -> bytes:
     if isinstance(data, memoryview):
         data = data.tobytes()
     if not isinstance(data, (bytes, bytearray)):
