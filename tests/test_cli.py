@@ -93,3 +93,32 @@ def test_address_p2sh_testnet(capsys):
 def test_address_rejects_bad_length(capsys):
     assert main(["address", "p2pkh", "00"]) == 1
     assert "20-byte HASH160" in capsys.readouterr().err
+
+
+P2WPKH = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+P2WPKH_HASH = "751e76e8199196d454941c45d1b3a323f1433bd6"
+P2WSH_HASH = "1863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262"
+P2WSH_TESTNET = "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7"
+
+
+def test_address_p2wpkh(capsys):
+    assert main(["address", "p2wpkh", P2WPKH_HASH]) == 0
+    assert capsys.readouterr().out.strip() == P2WPKH
+
+
+def test_address_p2wsh_testnet(capsys):
+    assert main(["address", "p2wsh", P2WSH_HASH, "--testnet"]) == 0
+    assert capsys.readouterr().out.strip() == P2WSH_TESTNET
+
+
+def test_decode_segwit(capsys):
+    assert main(["decode", P2WPKH]) == 0
+    out = capsys.readouterr().out
+    assert "bc (mainnet P2WPKH)" in out
+    assert "witness version: 0" in out
+    assert P2WPKH_HASH in out
+
+
+def test_decode_segwit_invalid(capsys):
+    assert main(["decode", "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5"]) == 1
+    assert "checksum" in capsys.readouterr().err

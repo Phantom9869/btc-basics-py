@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from .address import p2pkh_address, p2sh_address
+from .address import decode_segwit_address, p2pkh_address, p2sh_address, p2wpkh_address, p2wsh_address
 from .base58 import b58decode_check, b58encode_check
 from .hashes import hash160, sha256, sha256d
 from .wif import MAINNET_WIF, TESTNET_WIF, decode_wif, encode_wif
@@ -41,7 +41,25 @@ def cmd_encode(args):
     print(b58encode_check(payload))
 
 
+def _looks_like_segwit(addr: str) -> bool:
+    prefix = addr.strip()[:3].lower()
+    return prefix in ("bc1", "tb1")
+
+
 def cmd_decode(args):
+    if _looks_like_segwit(args.address):
+        try:
+            info = decode_segwit_address(args.address)
+        except (TypeError, ValueError) as e:
+            print(f"invalid: {e}", file=sys.stderr)
+            return 1
+        network = "testnet" if info.hrp == "tb" else "mainnet"
+        kind = "P2WPKH" if len(info.program) == 20 else "P2WSH"
+        print(f"hrp: {info.hrp} ({network} {kind})")
+        print(f"witness version: {info.version}")
+        print(f"program: {info.program.hex()}")
+        return 0
+
     try:
         payload = b58decode_check(args.address)
     except ValueError as e:
@@ -78,11 +96,14 @@ def cmd_decode(args):
 
 
 def cmd_address(args):
+    builders = {
+        "p2pkh": p2pkh_address,
+        "p2sh": p2sh_address,
+        "p2wpkh": p2wpkh_address,
+        "p2wsh": p2wsh_address,
+    }
     try:
-        if args.kind == "p2pkh":
-            print(p2pkh_address(args.data, testnet=args.testnet))
-        else:
-            print(p2sh_address(args.data, testnet=args.testnet))
+        print(builders[args.kind](args.data, testnet=args.testnet))
     except ValueError as e:
         print(f"invalid: {e}", file=sys.stderr)
         return 1
@@ -125,14 +146,14 @@ def main(argv=None):
                    help="version byte to prepend, e.g. 0x00")
     p.set_defaults(func=cmd_encode)
 
-    p = sub.add_parser("decode", help="decode and validate a base58check string")
+    p = sub.add_parser("decode", help="decode and validate a Base58Check or SegWit address")
     p.add_argument("address")
     p.set_defaults(func=cmd_decode)
 
-    p = sub.add_parser("address", help="build a P2PKH or P2SH address")
-    p.add_argument("kind", choices=["p2pkh", "p2sh"])
+    p = sub.add_parser("address", help="build a P2PKH, P2SH or SegWit v0 address")
+    p.add_argument("kind", choices=["p2pkh", "p2sh", "p2wpkh", "p2wsh"])
     p.add_argument("data", type=parse_hex,
-                   help="HASH160, or for p2pkh a 33/65-byte public key")
+                   help="HASH160, script hash, or for p2pkh/p2wpkh a public key")
     p.add_argument("--testnet", action="store_true")
     p.set_defaults(func=cmd_address)
 
