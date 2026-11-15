@@ -273,3 +273,47 @@ def identify_address(s: str) -> AddressInfo:
         version=version,
         error=f"unknown version byte: 0x{version:02x}",
     )
+
+
+def address_to_scriptpubkey(addr: str) -> bytes:
+    """Return the scriptPubKey for a valid payment address.
+
+    WIF keys are rejected: they are not payment destinations.
+    """
+    info = identify_address(addr)
+    if not info.valid:
+        raise ValueError(info.error or "invalid address")
+    if info.type == "wif":
+        raise ValueError("WIF keys have no scriptPubKey")
+    program = info.payload
+    if program is None:
+        raise ValueError("invalid address")
+    if info.type == "p2pkh":
+        return b"\x76\xa9\x14" + program + b"\x88\xac"
+    if info.type == "p2sh":
+        return b"\xa9\x14" + program + b"\x87"
+    if info.version is None:
+        raise ValueError("invalid address")
+    opcode = 0x00 if info.version == 0 else 0x50 + info.version
+    return bytes([opcode, len(program)]) + program
+
+
+def scriptpubkey_to_address(script: BytesLike, *, testnet: bool = False) -> str:
+    """Build an address from a standard P2PKH, P2SH or native SegWit scriptPubKey."""
+    script = _as_bytes(script, "scriptpubkey_to_address")
+    if len(script) == 25 and script[:3] == b"\x76\xa9\x14" and script[-2:] == b"\x88\xac":
+        return p2pkh_address(script[3:23], testnet=testnet)
+    if len(script) == 23 and script[:2] == b"\xa9\x14" and script[-1:] == b"\x87":
+        return p2sh_address(script[2:22], testnet=testnet)
+    if len(script) >= 4:
+        opcode, length = script[0], script[1]
+        program = script[2:]
+        if length == len(program) and 2 <= length <= 40:
+            if opcode == 0x00:
+                version = 0
+            elif 0x51 <= opcode <= 0x60:
+                version = opcode - 0x50
+            else:
+                raise ValueError("unsupported scriptPubKey")
+            return encode_segwit_address(program, version=version, testnet=testnet)
+    raise ValueError("unsupported scriptPubKey")

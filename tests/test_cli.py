@@ -284,3 +284,34 @@ def test_json_validate_invalid(capsys):
     assert data["valid"] is False
     assert data["type"] == "unknown"
     assert "checksum" in data["error"]
+
+
+def test_scriptpubkey_p2tr(capsys):
+    assert main(["scriptpubkey", P2TR]) == 0
+    assert capsys.readouterr().out.strip() == "5120" + P2TR_KEY
+
+
+def test_scriptpubkey_from_script(capsys):
+    assert main(["scriptpubkey", "--from-script", "5120" + P2TR_KEY]) == 0
+    assert capsys.readouterr().out.strip() == P2TR
+
+
+def test_scriptpubkey_from_script_testnet(capsys):
+    assert main(["scriptpubkey", "--from-script", "0020" + P2WSH_HASH, "--testnet"]) == 0
+    assert capsys.readouterr().out.strip() == P2WSH_TESTNET
+
+
+def test_scriptpubkey_rejects_wif(capsys):
+    assert main(["scriptpubkey", WIF_UNCOMPRESSED]) == 1
+    assert "WIF" in capsys.readouterr().err
+
+
+def test_scriptpubkey_requires_argument(capsys):
+    assert main(["scriptpubkey"]) == 1
+    assert "required" in capsys.readouterr().err
+
+
+def test_json_scriptpubkey(capsys):
+    assert main(["--json", "scriptpubkey", P2TR]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data == {"scriptpubkey": "5120" + P2TR_KEY}

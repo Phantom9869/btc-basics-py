@@ -2,7 +2,7 @@ import argparse
 import json
 import sys
 
-from .address import decode_segwit_address, identify_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address, segwit_script_type
+from .address import address_to_scriptpubkey, decode_segwit_address, identify_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address, scriptpubkey_to_address, segwit_script_type
 from .base58 import b58decode_check, b58encode_check
 from .hashes import hash160, sha256, sha256d
 from .wif import MAINNET_WIF, TESTNET_WIF, decode_wif, encode_wif
@@ -247,6 +247,30 @@ def cmd_validate(args):
     return 0 if info.valid else 1
 
 
+def cmd_scriptpubkey(args):
+    if args.address and args.script is not None:
+        print("give an address or --from-script, not both", file=sys.stderr)
+        return 1
+    if args.address is None and args.script is None:
+        print("an address or --from-script is required", file=sys.stderr)
+        return 1
+    if args.script is not None:
+        try:
+            addr = scriptpubkey_to_address(args.script, testnet=args.testnet)
+        except ValueError as e:
+            print(f"invalid: {e}", file=sys.stderr)
+            return 1
+        _emit(args, text=addr, data={"address": addr, "testnet": args.testnet})
+        return 0
+    try:
+        script = address_to_scriptpubkey(args.address)
+    except (TypeError, ValueError) as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    _emit(args, text=script.hex(), data={"scriptpubkey": script.hex()})
+    return 0
+
+
 def main(argv=None):
     shared = argparse.ArgumentParser(add_help=False)
     # default=SUPPRESS so a --json before the subcommand is not
@@ -277,6 +301,14 @@ def main(argv=None):
                    help="HASH160, script hash, x-only pubkey, or for p2pkh/p2wpkh a public key")
     p.add_argument("--testnet", action="store_true")
     p.set_defaults(func=cmd_address)
+
+    p = sub.add_parser("scriptpubkey", parents=[shared], help="convert between an address and its scriptPubKey")
+    p.add_argument("address", nargs="?", help="payment address to encode as a scriptPubKey")
+    p.add_argument("--from-script", type=parse_hex, dest="script",
+                   help="scriptPubKey hex to decode into an address")
+    p.add_argument("--testnet", action="store_true",
+                   help="with --from-script, build a testnet address")
+    p.set_defaults(func=cmd_scriptpubkey)
 
     p = sub.add_parser("validate", parents=[shared], help="identify an address or WIF key and check it")
     p.add_argument("address")

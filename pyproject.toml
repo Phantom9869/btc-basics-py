@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "btcbasics"
 version = "0.1.0"
-description = "SHA-256d, HASH160, Base58Check, Bech32 and Bitcoin address helpers in plain Python"
+description = "SHA-256d, HASH160, Base58Check, Bech32, Bech32m and Bitcoin address helpers in plain Python"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
