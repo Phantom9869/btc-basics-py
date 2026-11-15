@@ -1,7 +1,7 @@
 # btc-basics-py
 
 Small Python implementations of the hashing and encoding pieces behind
-Bitcoin addresses: SHA-256d, HASH160, Base58Check, Bech32, Wallet Import
+Bitcoin addresses: SHA-256d, HASH160, Base58Check, Bech32, Bech32m, Wallet Import
 Format and P2PKH/P2SH/P2WPKH/P2WSH address construction. Written while
 going through Mastering Bitcoin. Standard library only.
 
@@ -61,5 +61,5 @@ Pushes and pull requests also run that suite on Python 3.9, 3.11 and 3.13
 via GitHub Actions.
 
 The tests use published vectors, including the genesis block hash, the
-address it paid to, a well-known WIF key, and the official BIP 173
-Bech32 / SegWit v0 addresses.
+address it paid to, a well-known WIF key, the official BIP 173 Bech32 /
+SegWit v0 addresses, and the official BIP 350 Bech32m strings.
