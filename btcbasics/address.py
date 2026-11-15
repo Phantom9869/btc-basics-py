@@ -1,10 +1,11 @@
 """P2PKH, P2SH, SegWit v0 (P2WPKH/P2WSH) and Taproot (P2TR) address helpers."""
 
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
-from .base58 import b58encode_check
-from .bech32 import BECH32, BECH32M, bech32_decode_any, bech32_encode, convertbits
+from .base58 import b58decode_check, b58encode_check
+from .bech32 import BECH32, BECH32M, CHARSET, bech32_decode_any, bech32_encode, convertbits
 from .hashes import BytesLike, _as_bytes, hash160
+from .wif import MAINNET_WIF, TESTNET_WIF, decode_wif
 
 MAINNET_P2PKH = 0x00
 MAINNET_P2SH = 0x05
@@ -140,3 +141,135 @@ def decode_segwit_address(addr: str) -> SegwitAddress:
     elif not 2 <= len(program) <= 40:
         raise ValueError("witness version 1-16 program must be 2 to 40 bytes")
     return SegwitAddress(hrp=hrp, version=version, program=program)
+
+
+class AddressInfo(NamedTuple):
+    type: str
+    network: Optional[str]
+    valid: bool
+    payload: Optional[bytes] = None
+    version: Optional[int] = None
+    compressed: Optional[bool] = None
+    error: Optional[str] = None
+
+
+def segwit_script_type(version: int, program: bytes) -> str:
+    """Return 'p2wpkh', 'p2wsh', 'p2tr', or 'witness' for a decoded program."""
+    if version == 0:
+        return "p2wpkh" if len(program) == 20 else "p2wsh"
+    if version == 1 and len(program) == 32:
+        return "p2tr"
+    return "witness"
+
+
+def _has_bech32_shape(s: str) -> bool:
+    text = s.strip()
+    # Mixed-case strings are not valid Bech32, but still shouldn't be
+    # parsed as Base58 if they otherwise look like a SegWit address.
+    text = text.lower()
+    pos = text.rfind("1")
+    if pos < 1 or pos + 7 > len(text):
+        return False
+    hrp, rest = text[:pos], text[pos + 1 :]
+    if not all(33 <= ord(c) <= 126 for c in hrp):
+        return False
+    return all(c in CHARSET for c in rest)
+
+
+def identify_address(s: str) -> AddressInfo:
+    """Classify a Bitcoin address or WIF key and say whether it is valid.
+
+    Does not raise on a malformed string: `valid` is False and `error`
+    explains why. Raises TypeError if `s` is not a str.
+    """
+    if not isinstance(s, str):
+        raise TypeError(f"identify_address() expected str, got {type(s).__name__}")
+    raw = s.strip()
+    if not raw:
+        return AddressInfo(type="unknown", network=None, valid=False, error="empty address")
+
+    if _has_bech32_shape(raw) or raw.lower().startswith(("bc1", "tb1")):
+        low = raw.lower()
+        if low.startswith("tb1"):
+            network: Optional[str] = "testnet"
+        elif low.startswith("bc1"):
+            network = "mainnet"
+        else:
+            network = None
+        try:
+            info = decode_segwit_address(s)
+        except ValueError as e:
+            return AddressInfo(type="unknown", network=network, valid=False, error=str(e))
+        typ = segwit_script_type(info.version, info.program)
+        return AddressInfo(
+            type=typ,
+            network="testnet" if info.hrp == TESTNET_HRP else "mainnet",
+            valid=True,
+            payload=info.program,
+            version=info.version,
+        )
+
+    try:
+        payload = b58decode_check(s)
+    except ValueError as e:
+        return AddressInfo(type="unknown", network=None, valid=False, error=str(e))
+
+    if not payload:
+        return AddressInfo(type="unknown", network=None, valid=False, error="empty payload")
+
+    version, body = payload[0], payload[1:]
+    if version in (MAINNET_WIF, TESTNET_WIF):
+        network = "testnet" if version == TESTNET_WIF else "mainnet"
+        try:
+            key = decode_wif(s)
+        except ValueError as e:
+            return AddressInfo(
+                type="wif",
+                network=network,
+                valid=False,
+                payload=body,
+                version=version,
+                error=str(e),
+            )
+        return AddressInfo(
+            type="wif",
+            network="testnet" if key.testnet else "mainnet",
+            valid=True,
+            payload=key.private_key,
+            version=version,
+            compressed=key.compressed,
+        )
+
+    versions = {
+        MAINNET_P2PKH: ("p2pkh", "mainnet"),
+        MAINNET_P2SH: ("p2sh", "mainnet"),
+        TESTNET_P2PKH: ("p2pkh", "testnet"),
+        TESTNET_P2SH: ("p2sh", "testnet"),
+    }
+    if version in versions:
+        typ, network = versions[version]
+        if len(body) != 20:
+            return AddressInfo(
+                type=typ,
+                network=network,
+                valid=False,
+                payload=body,
+                version=version,
+                error=f"expected 20 byte hash, got {len(body)}",
+            )
+        return AddressInfo(
+            type=typ,
+            network=network,
+            valid=True,
+            payload=body,
+            version=version,
+        )
+
+    return AddressInfo(
+        type="unknown",
+        network=None,
+        valid=False,
+        payload=body,
+        version=version,
+        error=f"unknown version byte: 0x{version:02x}",
+    )

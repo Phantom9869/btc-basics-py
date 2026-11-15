@@ -27,12 +27,17 @@ python -m btcbasics decode bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz
 python -m btcbasics wif encode 0c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d --uncompressed
 python -m btcbasics encode 62e907b15cbf27d5425399ebf6f0fb50ebb88f18 --version 0x00
 python -m btcbasics --json decode bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
+python -m btcbasics validate bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0
 ```
 
 Hex arguments accept a `0x` prefix and surrounding whitespace. `decode`
 skips leading and trailing whitespace on the address or WIF string,
 recognizes P2PKH, P2SH, WIF, native SegWit v0 and Taproot (P2TR) addresses, and checks
 the checksum.
+
+`validate` classifies any of those (plus unknown Base58 version bytes) as a
+type and network, and exits 0 only when the string is valid. It is meant for
+scripts that need to ask "what is this?" without picking a decode path.
 
 `address p2pkh` takes a 20-byte HASH160 or a 33/65-byte public key.
 `address p2sh` takes a 20-byte script hash. `address p2wpkh` takes a
@@ -47,7 +52,7 @@ Errors still go to stderr as text.
 The same helpers are available as a library:
 
 ```
-from btcbasics import p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d
+from btcbasics import identify_address, p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d
 ```
 
 The package ships a `py.typed` marker so type checkers can use the

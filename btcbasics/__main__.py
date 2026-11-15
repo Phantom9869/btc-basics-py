@@ -2,7 +2,7 @@ import argparse
 import json
 import sys
 
-from .address import decode_segwit_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address
+from .address import decode_segwit_address, identify_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address, segwit_script_type
 from .base58 import b58decode_check, b58encode_check
 from .hashes import hash160, sha256, sha256d
 from .wif import MAINNET_WIF, TESTNET_WIF, decode_wif, encode_wif
@@ -57,11 +57,10 @@ def cmd_encode(args):
 
 
 def _segwit_type(info) -> str:
-    if info.version == 0:
-        return "P2WPKH" if len(info.program) == 20 else "P2WSH"
-    if info.version == 1 and len(info.program) == 32:
-        return "P2TR"
-    return f"witness v{info.version}"
+    name = segwit_script_type(info.version, info.program)
+    if name == "witness":
+        return f"witness v{info.version}"
+    return name.upper()
 
 
 def _looks_like_segwit(addr: str) -> bool:
@@ -196,6 +195,58 @@ def cmd_wif_decode(args):
     return 0
 
 
+def _address_info_data(info):
+    data = {"valid": info.valid, "type": info.type}
+    if info.network is not None:
+        data["network"] = info.network
+    if info.type == "wif" and info.payload is not None:
+        data["private_key"] = info.payload.hex()
+        if info.compressed is not None:
+            data["compressed"] = info.compressed
+    elif info.type in ("p2wpkh", "p2wsh", "p2tr", "witness") and info.payload is not None:
+        data["witness_version"] = info.version
+        data["program"] = info.payload.hex()
+    elif info.payload is not None:
+        data["payload"] = info.payload.hex()
+        if info.version is not None:
+            data["version"] = info.version
+    if info.error:
+        data["error"] = info.error
+    return data
+
+
+def _address_info_text(info):
+    typ = info.type
+    if typ == "witness" and info.version is not None:
+        typ = f"witness v{info.version}"
+    lines = [
+        f"valid: {'yes' if info.valid else 'no'}",
+        f"type: {typ}",
+    ]
+    if info.network:
+        lines.append(f"network: {info.network}")
+    if info.type == "wif" and info.payload is not None:
+        lines.append(f"private key: {info.payload.hex()}")
+        if info.compressed is not None:
+            lines.append(f"compressed: {'yes' if info.compressed else 'no'}")
+    elif info.type in ("p2wpkh", "p2wsh", "p2tr", "witness") and info.payload is not None:
+        lines.append(f"witness version: {info.version}")
+        lines.append(f"program: {info.payload.hex()}")
+    elif info.payload is not None:
+        if info.version is not None:
+            lines.append(f"version: 0x{info.version:02x}")
+        lines.append(f"payload: {info.payload.hex()}")
+    if info.error:
+        lines.append(f"error: {info.error}")
+    return "\n".join(lines)
+
+
+def cmd_validate(args):
+    info = identify_address(args.address)
+    _emit(args, text=_address_info_text(info), data=_address_info_data(info))
+    return 0 if info.valid else 1
+
+
 def main(argv=None):
     shared = argparse.ArgumentParser(add_help=False)
     # default=SUPPRESS so a --json before the subcommand is not
@@ -226,6 +277,10 @@ def main(argv=None):
                    help="HASH160, script hash, x-only pubkey, or for p2pkh/p2wpkh a public key")
     p.add_argument("--testnet", action="store_true")
     p.set_defaults(func=cmd_address)
+
+    p = sub.add_parser("validate", parents=[shared], help="identify an address or WIF key and check it")
+    p.add_argument("address")
+    p.set_defaults(func=cmd_validate)
 
     p = sub.add_parser("wif", parents=[shared], help="encode or decode a Wallet Import Format key")
     wif_sub = p.add_subparsers(dest="wif_command", required=True)

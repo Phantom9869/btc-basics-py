@@ -223,3 +223,64 @@ def test_json_decode_p2tr(capsys):
 def test_address_p2tr_rejects_bad_length(capsys):
     assert main(["address", "p2tr", "00"]) == 1
     assert "32-byte x-only public key" in capsys.readouterr().err
+
+
+def test_validate_p2pkh(capsys):
+    assert main(["validate", "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"]) == 0
+    out = capsys.readouterr().out
+    assert "valid: yes" in out
+    assert "type: p2pkh" in out
+    assert "network: mainnet" in out
+    assert "62e907b15cbf27d5425399ebf6f0fb50ebb88f18" in out
+
+
+def test_validate_p2tr(capsys):
+    assert main(["validate", P2TR]) == 0
+    out = capsys.readouterr().out
+    assert "valid: yes" in out
+    assert "type: p2tr" in out
+    assert "network: mainnet" in out
+    assert "witness version: 1" in out
+    assert P2TR_KEY in out
+
+
+def test_validate_witness_v16(capsys):
+    assert main(["validate", V16]) == 0
+    out = capsys.readouterr().out
+    assert "type: witness v16" in out
+    assert "witness version: 16" in out
+
+
+def test_validate_wif(capsys):
+    assert main(["validate", WIF_UNCOMPRESSED]) == 0
+    out = capsys.readouterr().out
+    assert "type: wif" in out
+    assert f"private key: {WIF_PRIV}" in out
+    assert "compressed: no" in out
+
+
+def test_validate_invalid(capsys):
+    assert main(["validate", "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNb"]) == 1
+    out = capsys.readouterr().out
+    assert "valid: no" in out
+    assert "error: bad checksum" in out
+
+
+def test_json_validate_p2tr(capsys):
+    assert main(["--json", "validate", P2TR]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data == {
+        "valid": True,
+        "type": "p2tr",
+        "network": "mainnet",
+        "witness_version": 1,
+        "program": P2TR_KEY,
+    }
+
+
+def test_json_validate_invalid(capsys):
+    assert main(["--json", "validate", "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNb"]) == 1
+    data = json.loads(capsys.readouterr().out)
+    assert data["valid"] is False
+    assert data["type"] == "unknown"
+    assert "checksum" in data["error"]
