@@ -1,6 +1,15 @@
 import pytest
 
-from btcbasics.address import SegwitAddress, decode_segwit_address, p2pkh_address, p2sh_address, p2wpkh_address, p2wsh_address
+from btcbasics.address import (
+    SegwitAddress,
+    decode_segwit_address,
+    encode_segwit_address,
+    p2pkh_address,
+    p2sh_address,
+    p2tr_address,
+    p2wpkh_address,
+    p2wsh_address,
+)
 from btcbasics.base58 import b58decode_check
 from btcbasics.hashes import hash160
 
@@ -134,9 +143,9 @@ def test_decode_segwit_rejects_wrong_v0_length():
         decode_segwit_address("BC1QR508D6QEJXTDG4Y5R3ZARVARYV98GJ9P")
 
 
-def test_decode_segwit_rejects_non_v0():
-    # BIP 173 witness v16 address, encoded with Bech32 (not Bech32m).
-    with pytest.raises(ValueError, match="only witness version 0"):
+def test_decode_segwit_rejects_bech32_for_v16():
+    # BIP 173 witness v16 address, encoded with Bech32 instead of Bech32m.
+    with pytest.raises(ValueError, match="must use Bech32m"):
         decode_segwit_address("BC1SW50QA3JX3S")
 
 
@@ -150,3 +159,79 @@ def test_p2wpkh_rejects_uncompressed_and_bad_length():
 def test_p2wsh_rejects_wrong_length():
     with pytest.raises(ValueError, match="32-byte script hash"):
         p2wsh_address(b"\x11" * 20)
+
+
+# Official BIP 350 SegWit v0-v16 addresses: (address, version, program hex).
+VALID_SEGWIT = [
+    ("BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4", 0, "751e76e8199196d454941c45d1b3a323f1433bd6"),
+    ("tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7", 0, "1863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262"),
+    ("bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7kt5nd6y", 1, "751e76e8199196d454941c45d1b3a323f1433bd6751e76e8199196d454941c45d1b3a323f1433bd6"),
+    ("BC1SW50QGDZ25J", 16, "751e"),
+    ("bc1zw508d6qejxtdg4y5r3zarvaryvaxxpcs", 2, "751e76e8199196d454941c45d1b3a323"),
+    ("tb1qqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesrxh6hy", 0, "000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"),
+    ("tb1pqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesf3hn0c", 1, "000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"),
+    ("bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0", 1, "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"),
+]
+
+INVALID_SEGWIT = [
+    "tc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vq5zuyut",
+    "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqh2y7hd",
+    "tb1z0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqglt7rf",
+    "BC1S0XLXVLHEMJA6C4DQV22UAPCTQUPFHLXM9H8Z3K2E72Q4K9HCZ7VQ54WELL",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kemeawh",
+    "tb1q0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vq24jc47",
+    "bc1p38j9r5y49hruaue7wxjce0updqjuyyx0kh56v8s25huc6995vvpql3jow4",
+    "BC130XLXVLHEMJA6C4DQV22UAPCTQUPFHLXM9H8Z3K2E72Q4K9HCZ7VQ7ZWS8R",
+    "bc1pw5dgrnzv",
+    "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7v8n0nx0muaewav253zgeav",
+    "BC1QR508D6QEJXTDG4Y5R3ZARVARYV98GJ9P",
+    "tb1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vq47Zagq",
+    "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7v07qwwzcrf",
+    "tb1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vpggkg4j",
+    "bc1gmk9yu",
+]
+
+P2TR_KEY = bytes.fromhex("79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")
+P2TR_ADDRESS = "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0"
+P2TR_TESTNET = "tb1pqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesf3hn0c"
+P2TR_TESTNET_KEY = bytes.fromhex(
+    "000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"
+)
+
+
+@pytest.mark.parametrize("addr, version, program_hex", VALID_SEGWIT)
+def test_official_valid_segwit(addr, version, program_hex):
+    program = bytes.fromhex(program_hex)
+    got = decode_segwit_address(addr)
+    assert got.version == version
+    assert got.program == program
+    assert got.hrp == ("tb" if addr.lower().startswith("tb") else "bc")
+    testnet = got.hrp == "tb"
+    assert encode_segwit_address(program, version=version, testnet=testnet) == addr.lower()
+
+
+@pytest.mark.parametrize("addr", INVALID_SEGWIT)
+def test_official_invalid_segwit(addr):
+    with pytest.raises(ValueError):
+        decode_segwit_address(addr)
+
+
+def test_p2tr_from_xonly_key():
+    assert p2tr_address(P2TR_KEY) == P2TR_ADDRESS
+    assert p2tr_address(P2TR_TESTNET_KEY, testnet=True) == P2TR_TESTNET
+
+
+def test_p2tr_rejects_wrong_length():
+    with pytest.raises(ValueError, match="32-byte x-only public key"):
+        p2tr_address(b"\x11" * 33)
+    with pytest.raises(ValueError, match="32-byte x-only public key"):
+        p2tr_address(b"\x11" * 20)
+
+
+def test_encode_segwit_rejects_bad_version_or_length():
+    with pytest.raises(ValueError, match="0 through 16"):
+        encode_segwit_address(b"\x11" * 32, version=17)
+    with pytest.raises(ValueError, match="20 or 32 bytes"):
+        encode_segwit_address(b"\x11" * 21, version=0)
+    with pytest.raises(ValueError, match="2 to 40 bytes"):
+        encode_segwit_address(b"\x11", version=1)

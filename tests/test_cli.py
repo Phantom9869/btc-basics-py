@@ -176,3 +176,50 @@ def test_json_does_not_change_error_output(capsys):
     captured = capsys.readouterr()
     assert captured.out == ""
     assert "bad checksum" in captured.err
+
+
+P2TR = "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0"
+P2TR_KEY = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+P2TR_TESTNET = "tb1pqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesf3hn0c"
+P2TR_TESTNET_KEY = "000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"
+V16 = "bc1sw50qgdz25j"
+
+
+def test_address_p2tr(capsys):
+    assert main(["address", "p2tr", P2TR_KEY]) == 0
+    assert capsys.readouterr().out.strip() == P2TR
+
+
+def test_address_p2tr_testnet(capsys):
+    assert main(["address", "p2tr", P2TR_TESTNET_KEY, "--testnet"]) == 0
+    assert capsys.readouterr().out.strip() == P2TR_TESTNET
+
+
+def test_decode_p2tr(capsys):
+    assert main(["decode", P2TR]) == 0
+    out = capsys.readouterr().out
+    assert "bc (mainnet P2TR)" in out
+    assert "witness version: 1" in out
+    assert P2TR_KEY in out
+
+
+def test_decode_witness_v16(capsys):
+    assert main(["decode", V16]) == 0
+    out = capsys.readouterr().out
+    assert "bc (mainnet witness v16)" in out
+    assert "witness version: 16" in out
+    assert "751e" in out
+
+
+def test_json_decode_p2tr(capsys):
+    assert main(["--json", "decode", P2TR]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["type"] == "mainnet P2TR"
+    assert data["hrp"] == "bc"
+    assert data["witness_version"] == 1
+    assert data["program"] == P2TR_KEY
+
+
+def test_address_p2tr_rejects_bad_length(capsys):
+    assert main(["address", "p2tr", "00"]) == 1
+    assert "32-byte x-only public key" in capsys.readouterr().err
