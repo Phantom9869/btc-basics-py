@@ -2,8 +2,9 @@
 
 Small Python implementations of the hashing and encoding pieces behind
 Bitcoin addresses: SHA-256d, HASH160, Base58Check, Bech32, Bech32m, Wallet Import
-Format and P2PKH/P2SH/P2WPKH/P2WSH/P2TR address construction. Written while
-going through Mastering Bitcoin. Standard library only.
+Format, CompactSize varints and P2PKH/P2SH/P2WPKH/P2WSH/P2TR address
+construction. Written while going through Mastering Bitcoin. Standard
+library only.
 
 ## Install
 
@@ -30,6 +31,8 @@ python -m btcbasics --json decode bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
 python -m btcbasics validate bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0
 python -m btcbasics scriptpubkey bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0
 python -m btcbasics scriptpubkey --from-script 512079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
+python -m btcbasics varint encode 253
+python -m btcbasics varint decode 0xfdfd00
 ```
 
 Hex arguments accept a `0x` prefix and surrounding whitespace. `decode`
@@ -45,6 +48,11 @@ scripts that need to ask "what is this?" without picking a decode path.
 `--from-script` goes the other way; add `--testnet` to build a testnet
 address, since a scriptPubKey does not itself record the network.
 
+`varint` encodes and decodes Bitcoin's CompactSize integers, the
+variable-length length prefix used in transactions and inventory messages.
+Decode rejects truncated or non-canonical encodings, the same way Bitcoin
+Core does.
+
 `address p2pkh` takes a 20-byte HASH160 or a 33/65-byte public key.
 `address p2sh` takes a 20-byte script hash. `address p2wpkh` takes a
 20-byte HASH160 or a 33-byte compressed public key. `address p2wsh`
@@ -58,7 +66,7 @@ Errors still go to stderr as text.
 The same helpers are available as a library:
 
 ```
-from btcbasics import address_to_scriptpubkey, identify_address, p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d
+from btcbasics import address_to_scriptpubkey, encode_compact_size, identify_address, p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d
 ```
 
 The package ships a `py.typed` marker so type checkers can use the
@@ -75,6 +83,7 @@ Pushes and pull requests also run that suite on Python 3.9, 3.11 and 3.13
 via GitHub Actions.
 
 The tests use published vectors, including the genesis block hash, the
-address it paid to, a well-known WIF key, the official BIP 173 Bech32 /
+address it paid to, a well-known WIF key, Bitcoin Core's CompactSize
+canonical and non-canonical cases, the official BIP 173 Bech32 /
 SegWit v0 addresses, and the official BIP 350 Bech32m and SegWit v1+
 addresses.

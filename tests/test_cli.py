@@ -315,3 +315,34 @@ def test_json_scriptpubkey(capsys):
     assert main(["--json", "scriptpubkey", P2TR]) == 0
     data = json.loads(capsys.readouterr().out)
     assert data == {"scriptpubkey": "5120" + P2TR_KEY}
+
+
+def test_varint_encode(capsys):
+    assert main(["varint", "encode", "253"]) == 0
+    assert capsys.readouterr().out.strip() == "fdfd00"
+
+
+def test_varint_encode_accepts_hex(capsys):
+    assert main(["varint", "encode", "0xffff"]) == 0
+    assert capsys.readouterr().out.strip() == "fdffff"
+
+
+def test_varint_decode(capsys):
+    assert main(["varint", "decode", "0xfdfd00"]) == 0
+    assert capsys.readouterr().out.strip() == "253"
+
+
+def test_varint_decode_rejects_noncanonical(capsys):
+    assert main(["varint", "decode", "fd0000"]) == 1
+    assert "non-canonical" in capsys.readouterr().err
+
+
+def test_varint_decode_rejects_trailing_data(capsys):
+    assert main(["varint", "decode", "01ab"]) == 1
+    assert "trailing data" in capsys.readouterr().err
+
+
+def test_json_varint(capsys):
+    assert main(["--json", "varint", "encode", "253"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data == {"value": 253, "encoded": "fdfd00"}

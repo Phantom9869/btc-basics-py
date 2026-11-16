@@ -5,6 +5,7 @@ import sys
 from .address import address_to_scriptpubkey, decode_segwit_address, identify_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address, scriptpubkey_to_address, segwit_script_type
 from .base58 import b58decode_check, b58encode_check
 from .hashes import hash160, sha256, sha256d
+from .varint import decode_compact_size, encode_compact_size
 from .wif import MAINNET_WIF, TESTNET_WIF, decode_wif, encode_wif
 
 VERSIONS = {
@@ -25,6 +26,14 @@ def parse_hex(text):
         return bytes.fromhex(raw)
     except ValueError:
         raise argparse.ArgumentTypeError(f"not valid hex: {text}")
+
+
+def parse_int(text):
+    raw = text.strip()
+    try:
+        return int(raw, 0)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"not a valid integer: {text}")
 
 
 def _emit(args, text=None, data=None):
@@ -271,6 +280,27 @@ def cmd_scriptpubkey(args):
     return 0
 
 
+def cmd_varint_encode(args):
+    try:
+        encoded = encode_compact_size(args.value).hex()
+    except ValueError as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    _emit(args, text=encoded, data={"value": args.value, "encoded": encoded})
+
+
+def cmd_varint_decode(args):
+    try:
+        value, rest = decode_compact_size(args.data)
+    except (TypeError, ValueError) as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    if rest:
+        print("invalid: trailing data after compact size", file=sys.stderr)
+        return 1
+    _emit(args, text=str(value), data={"value": value, "encoded": args.data.hex()})
+
+
 def main(argv=None):
     shared = argparse.ArgumentParser(add_help=False)
     # default=SUPPRESS so a --json before the subcommand is not
@@ -325,6 +355,15 @@ def main(argv=None):
     pd = wif_sub.add_parser("decode", parents=[shared], help="decode a WIF string")
     pd.add_argument("wif")
     pd.set_defaults(func=cmd_wif_decode)
+
+    p = sub.add_parser("varint", parents=[shared], help="encode or decode a Bitcoin CompactSize varint")
+    varint_sub = p.add_subparsers(dest="varint_command", required=True)
+    pe = varint_sub.add_parser("encode", parents=[shared], help="encode an integer as a compact size")
+    pe.add_argument("value", type=parse_int)
+    pe.set_defaults(func=cmd_varint_encode)
+    pd = varint_sub.add_parser("decode", parents=[shared], help="decode compact-size hex")
+    pd.add_argument("data", type=parse_hex)
+    pd.set_defaults(func=cmd_varint_decode)
 
     args = parser.parse_args(argv)
     return args.func(args) or 0
