@@ -5,6 +5,7 @@ import sys
 from .address import address_to_scriptpubkey, decode_segwit_address, identify_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address, scriptpubkey_to_address, segwit_script_type
 from .base58 import b58decode_check, b58encode_check
 from .hashes import hash160, sha256, sha256d
+from .message import signed_message_hash
 from .varint import decode_compact_size, encode_compact_size
 from .wif import MAINNET_WIF, TESTNET_WIF, decode_wif, encode_wif
 
@@ -301,6 +302,11 @@ def cmd_varint_decode(args):
     _emit(args, text=str(value), data={"value": value, "encoded": args.data.hex()})
 
 
+def cmd_message_hash(args):
+    digest = signed_message_hash(args.message).hex()
+    _emit(args, text=digest, data={"message": args.message, "hash": digest})
+
+
 def main(argv=None):
     shared = argparse.ArgumentParser(add_help=False)
     # default=SUPPRESS so a --json before the subcommand is not
@@ -364,6 +370,11 @@ def main(argv=None):
     pd = varint_sub.add_parser("decode", parents=[shared], help="decode compact-size hex")
     pd.add_argument("data", type=parse_hex)
     pd.set_defaults(func=cmd_varint_decode)
+
+    p = sub.add_parser("message-hash", parents=[shared],
+                       help="hash a Bitcoin signed message (magic prefix + compact-size length)")
+    p.add_argument("message", help="message text, encoded as UTF-8")
+    p.set_defaults(func=cmd_message_hash)
 
     args = parser.parse_args(argv)
     return args.func(args) or 0

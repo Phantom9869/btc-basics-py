@@ -346,3 +346,19 @@ def test_json_varint(capsys):
     assert main(["--json", "varint", "encode", "253"]) == 0
     data = json.loads(capsys.readouterr().out)
     assert data == {"value": 253, "encoded": "fdfd00"}
+
+
+def test_message_hash(capsys):
+    assert main(["message-hash", "Hello World"]) == 0
+    assert capsys.readouterr().out.strip() == (
+        "a7af0baad5ae99b97fc69b3a0d1abcf3ef17f131cc4776e1bc11933ec8550f49"
+    )
+
+
+def test_json_message_hash(capsys):
+    assert main(["--json", "message-hash", "hello"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data == {
+        "message": "hello",
+        "hash": "cf0447ec85f0ce7150a257db32ebfcb7523dae17c36dbd1be598779fec0484f4",
+    }

@@ -2,6 +2,7 @@ from .address import AddressInfo, SegwitAddress, address_to_scriptpubkey, decode
 from .bech32 import BECH32, BECH32M, bech32_decode, bech32_decode_any, bech32_encode, bech32m_decode, bech32m_encode, convertbits
 from .base58 import b58decode, b58decode_check, b58encode, b58encode_check
 from .hashes import hash160, sha256, sha256d
+from .message import MESSAGE_MAGIC, signed_message_hash
 from .varint import decode_compact_size, encode_compact_size
 from .wif import WIFKey, decode_wif, encode_wif
 
@@ -36,6 +37,8 @@ __all__ = [
     "encode_compact_size",
     "encode_wif",
     "hash160",
+    "MESSAGE_MAGIC",
     "sha256",
     "sha256d",
+    "signed_message_hash",
 ]

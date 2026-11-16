@@ -1,10 +1,10 @@
 # btc-basics-py
 
 Small Python implementations of the hashing and encoding pieces behind
-Bitcoin addresses: SHA-256d, HASH160, Base58Check, Bech32, Bech32m, Wallet Import
-Format, CompactSize varints and P2PKH/P2SH/P2WPKH/P2WSH/P2TR address
-construction. Written while going through Mastering Bitcoin. Standard
-library only.
+Bitcoin addresses: SHA-256d, HASH160, Base58Check, Bech32, Bech32m, Wallet
+Import Format, CompactSize varints, signed-message hashing, and
+P2PKH/P2SH/P2WPKH/P2WSH/P2TR address construction. Written while going
+through Mastering Bitcoin. Standard library only.
 
 ## Install
 
@@ -33,6 +33,7 @@ python -m btcbasics scriptpubkey bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q
 python -m btcbasics scriptpubkey --from-script 512079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
 python -m btcbasics varint encode 253
 python -m btcbasics varint decode 0xfdfd00
+python -m btcbasics message-hash "Hello World"
 ```
 
 Hex arguments accept a `0x` prefix and surrounding whitespace. `decode`
@@ -53,6 +54,10 @@ variable-length length prefix used in transactions and inventory messages.
 Decode rejects truncated or non-canonical encodings, the same way Bitcoin
 Core does.
 
+`message-hash` returns the SHA256d digest Bitcoin Core signs for a text
+message: the magic header `Bitcoin Signed Message:\n`, each part prefixed
+with a CompactSize length. The same helper accepts `bytes` in the library.
+
 `address p2pkh` takes a 20-byte HASH160 or a 33/65-byte public key.
 `address p2sh` takes a 20-byte script hash. `address p2wpkh` takes a
 20-byte HASH160 or a 33-byte compressed public key. `address p2wsh`
@@ -66,7 +71,7 @@ Errors still go to stderr as text.
 The same helpers are available as a library:
 
 ```
-from btcbasics import address_to_scriptpubkey, encode_compact_size, identify_address, p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d
+from btcbasics import address_to_scriptpubkey, encode_compact_size, identify_address, p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d, signed_message_hash
 ```
 
 The package ships a `py.typed` marker so type checkers can use the
