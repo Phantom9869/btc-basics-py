@@ -362,3 +362,25 @@ def test_json_message_hash(capsys):
         "message": "hello",
         "hash": "cf0447ec85f0ce7150a257db32ebfcb7523dae17c36dbd1be598779fec0484f4",
     }
+
+
+GENESIS_TXID = "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+GENESIS_MERKLE_INTERNAL = "3ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a"
+
+
+def test_txid(capsys):
+    assert main(["txid", GENESIS_MERKLE_INTERNAL]) == 0
+    assert capsys.readouterr().out.strip() == GENESIS_TXID
+    assert main(["txid", "0x" + GENESIS_TXID]) == 0
+    assert capsys.readouterr().out.strip() == GENESIS_MERKLE_INTERNAL
+
+
+def test_txid_rejects_wrong_length(capsys):
+    assert main(["txid", "00" * 31]) == 1
+    assert "32 bytes" in capsys.readouterr().err
+
+
+def test_json_txid(capsys):
+    assert main(["--json", "txid", GENESIS_MERKLE_INTERNAL]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data == {"input": GENESIS_MERKLE_INTERNAL, "reversed": GENESIS_TXID}

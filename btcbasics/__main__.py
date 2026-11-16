@@ -6,6 +6,7 @@ from .address import address_to_scriptpubkey, decode_segwit_address, identify_ad
 from .base58 import b58decode_check, b58encode_check
 from .hashes import hash160, sha256, sha256d
 from .message import signed_message_hash
+from .txid import txid_from_hash
 from .varint import decode_compact_size, encode_compact_size
 from .wif import MAINNET_WIF, TESTNET_WIF, decode_wif, encode_wif
 
@@ -307,6 +308,15 @@ def cmd_message_hash(args):
     _emit(args, text=digest, data={"message": args.message, "hash": digest})
 
 
+def cmd_txid(args):
+    try:
+        output = txid_from_hash(args.value)
+    except ValueError as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    _emit(args, text=output, data={"input": args.value.hex(), "reversed": output})
+
+
 def main(argv=None):
     shared = argparse.ArgumentParser(add_help=False)
     # default=SUPPRESS so a --json before the subcommand is not
@@ -375,6 +385,11 @@ def main(argv=None):
                        help="hash a Bitcoin signed message (magic prefix + compact-size length)")
     p.add_argument("message", help="message text, encoded as UTF-8")
     p.set_defaults(func=cmd_message_hash)
+
+    p = sub.add_parser("txid", parents=[shared],
+                       help="reverse a 32-byte hex hash between internal and display (txid) order")
+    p.add_argument("value", type=parse_hex, help="32-byte hash or txid as hex")
+    p.set_defaults(func=cmd_txid)
 
     args = parser.parse_args(argv)
     return args.func(args) or 0

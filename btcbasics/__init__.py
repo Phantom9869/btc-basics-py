@@ -3,6 +3,7 @@ from .bech32 import BECH32, BECH32M, bech32_decode, bech32_decode_any, bech32_en
 from .base58 import b58decode, b58decode_check, b58encode, b58encode_check
 from .hashes import hash160, sha256, sha256d
 from .message import MESSAGE_MAGIC, signed_message_hash
+from .txid import hash_from_txid, txid_from_hash
 from .varint import decode_compact_size, encode_compact_size
 from .wif import WIFKey, decode_wif, encode_wif
 
@@ -37,8 +38,10 @@ __all__ = [
     "encode_compact_size",
     "encode_wif",
     "hash160",
+    "hash_from_txid",
     "MESSAGE_MAGIC",
     "sha256",
     "sha256d",
     "signed_message_hash",
+    "txid_from_hash",
 ]
