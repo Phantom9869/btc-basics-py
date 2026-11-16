@@ -2,6 +2,7 @@ import argparse
 import json
 import sys
 
+from .bip39 import mnemonic_to_entropy, mnemonic_to_seed
 from .address import address_to_scriptpubkey, decode_segwit_address, identify_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address, scriptpubkey_to_address, segwit_script_type
 from .base58 import b58decode_check, b58encode_check
 from .hashes import hash160, sha256, sha256d
@@ -317,6 +318,21 @@ def cmd_txid(args):
     _emit(args, text=output, data={"input": args.value.hex(), "reversed": output})
 
 
+def cmd_seed(args):
+    try:
+        entropy = mnemonic_to_entropy(args.mnemonic)
+        seed = mnemonic_to_seed(args.mnemonic, args.passphrase)
+    except (TypeError, ValueError) as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    digest = seed.hex()
+    _emit(
+        args,
+        text=digest,
+        data={"seed": digest, "entropy": entropy.hex(), "words": len(args.mnemonic.strip().split())},
+    )
+
+
 def main(argv=None):
     shared = argparse.ArgumentParser(add_help=False)
     # default=SUPPRESS so a --json before the subcommand is not
@@ -390,6 +406,12 @@ def main(argv=None):
                        help="reverse a 32-byte hex hash between internal and display (txid) order")
     p.add_argument("value", type=parse_hex, help="32-byte hash or txid as hex")
     p.set_defaults(func=cmd_txid)
+
+    p = sub.add_parser("seed", parents=[shared],
+                       help="derive a BIP 39 seed from an English mnemonic")
+    p.add_argument("mnemonic", help="12 to 24 BIP 39 English words")
+    p.add_argument("--passphrase", default="", help="optional BIP 39 passphrase")
+    p.set_defaults(func=cmd_seed)
 
     args = parser.parse_args(argv)
     return args.func(args) or 0

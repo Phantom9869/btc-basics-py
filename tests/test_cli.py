@@ -384,3 +384,34 @@ def test_json_txid(capsys):
     assert main(["--json", "txid", GENESIS_MERKLE_INTERNAL]) == 0
     data = json.loads(capsys.readouterr().out)
     assert data == {"input": GENESIS_MERKLE_INTERNAL, "reversed": GENESIS_TXID}
+
+
+BIP39_MNEMONIC = (
+    "abandon abandon abandon abandon abandon abandon "
+    "abandon abandon abandon abandon abandon about"
+)
+BIP39_SEED = (
+    "c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e5349553"
+    "1f09a6987599d18264c1e1c92f2cf141630c7a3c4ab7c81b2f001698e7463b04"
+)
+
+
+def test_seed(capsys):
+    assert main(["seed", BIP39_MNEMONIC, "--passphrase", "TREZOR"]) == 0
+    assert capsys.readouterr().out.strip() == BIP39_SEED
+
+
+def test_seed_rejects_bad_checksum(capsys):
+    bad = BIP39_MNEMONIC.rsplit(" ", 1)[0] + " abandon"
+    assert main(["seed", bad]) == 1
+    assert "checksum" in capsys.readouterr().err
+
+
+def test_json_seed(capsys):
+    assert main(["--json", "seed", BIP39_MNEMONIC, "--passphrase", "TREZOR"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data == {
+        "seed": BIP39_SEED,
+        "entropy": "00" * 16,
+        "words": 12,
+    }
