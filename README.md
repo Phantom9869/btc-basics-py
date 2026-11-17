@@ -3,7 +3,7 @@
 Small Python implementations of the hashing and encoding pieces behind
 Bitcoin addresses: SHA-256d, HASH160, Base58Check, Bech32, Bech32m, Wallet
 Import Format, CompactSize varints, signed-message hashing, txid byte
-order, BIP 39 mnemonic-to-seed, BIP 32 extended keys, block headers, raw transactions, satoshi amounts, and P2PKH/P2SH/P2WPKH/P2WSH/P2TR address
+order, BIP 39 mnemonic-to-seed, BIP 32 extended keys, block headers, raw transactions, satoshi amounts, merkle roots, and P2PKH/P2SH/P2WPKH/P2WSH/P2TR address
 construction. Written while going through Mastering Bitcoin. Standard
 library only.
 
@@ -43,6 +43,8 @@ python -m btcbasics header 01000000000000000000000000000000000000000000000000000
 python -m btcbasics tx 01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000
 python -m btcbasics amount 50
 python -m btcbasics amount 5000000000 --from-sats
+python -m btcbasics merkle 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
+python -m btcbasics merkle b1fea52486ce0c62bb442b530a3f0132b826c74e473d1f2c220bfa78111c5082 f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16
 ```
 
 Hex arguments accept a `0x` prefix and surrounding whitespace. `decode`
@@ -100,6 +102,12 @@ satoshis in one BTC, and amounts must be in the range 0 through
 21,000,000 BTC with at most eight decimal places. `--from-sats` goes
 the other way.
 
+`merkle` builds a Bitcoin merkle root from one or more transaction ids.
+A single txid is its own root (as in the genesis block). An odd number
+of hashes at any tree level is padded by duplicating the last hash.
+The block 170 example above is the coinbase plus Satoshi's payment to
+Hal Finney, and prints that block's merkle root.
+
 `address p2pkh` takes a 20-byte HASH160 or a 33/65-byte public key.
 `address p2sh` takes a 20-byte script hash. `address p2wpkh` takes a
 20-byte HASH160 or a 33-byte compressed public key. `address p2wsh`
@@ -113,7 +121,7 @@ Errors still go to stderr as text.
 The same helpers are available as a library:
 
 ```
-from btcbasics import address_to_scriptpubkey, btc_to_sats, encode_compact_size, identify_address, master_from_seed, mnemonic_to_seed, parse_block_header, parse_transaction, p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d, signed_message_hash, txid_from_hash
+from btcbasics import address_to_scriptpubkey, btc_to_sats, encode_compact_size, identify_address, master_from_seed, merkle_root, mnemonic_to_seed, parse_block_header, parse_transaction, p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d, signed_message_hash, txid_from_hash
 ```
 
 The package ships a `py.typed` marker so type checkers can use the

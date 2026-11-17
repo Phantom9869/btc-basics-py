@@ -9,6 +9,7 @@ from .amount import btc_to_sats, format_btc, sats_to_btc
 from .address import address_to_scriptpubkey, decode_segwit_address, identify_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address, scriptpubkey_to_address, segwit_script_type
 from .base58 import b58decode_check, b58encode_check
 from .hashes import hash160, sha256, sha256d
+from .merkle import merkle_root
 from .message import signed_message_hash
 from .txid import txid_from_hash
 from .tx import parse_transaction
@@ -512,6 +513,20 @@ def cmd_amount(args):
     _emit(args, text=text, data={"btc": btc, "satoshis": sats})
 
 
+
+def cmd_merkle(args):
+    try:
+        root = merkle_root(args.txids)
+    except (TypeError, ValueError) as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    _emit(
+        args,
+        text=root,
+        data={"txids": [txid.strip() for txid in args.txids], "merkle_root": root, "transactions": len(args.txids)},
+    )
+
+
 def main(argv=None):
     shared = argparse.ArgumentParser(add_help=False)
     # default=SUPPRESS so a --json before the subcommand is not
@@ -623,6 +638,12 @@ def main(argv=None):
     p.add_argument("--from-sats", action="store_true",
                    help="treat the argument as satoshis and print BTC")
     p.set_defaults(func=cmd_amount)
+
+
+    p = sub.add_parser("merkle", parents=[shared],
+                       help="compute a merkle root from one or more transaction ids")
+    p.add_argument("txids", nargs="+", help="transaction ids in display byte order")
+    p.set_defaults(func=cmd_merkle)
 
     args = parser.parse_args(argv)
     return args.func(args) or 0
