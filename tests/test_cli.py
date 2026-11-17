@@ -502,3 +502,40 @@ def test_json_header_genesis(capsys):
     assert data["meets_target"] is True
     assert data["version"] == 1
     assert data["nonce"] == 2083236893
+
+
+GENESIS_TX = (
+    "0100000001000000000000000000000000000000000000000000000000000000"
+    "0000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a"
+    "616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f662073"
+    "65636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a"
+    "01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a679"
+    "62e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a"
+    "4c702b6bf11d5fac00000000"
+)
+GENESIS_COINBASE_TXID = "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+
+
+def test_tx_genesis(capsys):
+    assert main(["tx", GENESIS_TX]) == 0
+    out = capsys.readouterr().out
+    assert "version: 1" in out
+    assert "segwit: no" in out
+    assert "coinbase: yes" in out
+    assert "  0: 5000000000" in out
+    assert f"txid: {GENESIS_COINBASE_TXID}" in out
+    assert f"wtxid: {GENESIS_COINBASE_TXID}" in out
+
+
+def test_tx_rejects_truncated(capsys):
+    assert main(["tx", GENESIS_TX[:-2]]) == 1
+    assert "invalid:" in capsys.readouterr().err
+
+
+def test_json_tx_genesis(capsys):
+    assert main(["--json", "tx", "0x" + GENESIS_TX]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["txid"] == GENESIS_COINBASE_TXID
+    assert data["coinbase"] is True
+    assert data["segwit"] is False
+    assert data["outputs"][0]["value"] == 5_000_000_000

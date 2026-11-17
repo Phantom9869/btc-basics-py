@@ -10,6 +10,7 @@ from .base58 import b58decode_check, b58encode_check
 from .hashes import hash160, sha256, sha256d
 from .message import signed_message_hash
 from .txid import txid_from_hash
+from .tx import parse_transaction
 from .varint import decode_compact_size, encode_compact_size
 from .wif import MAINNET_WIF, TESTNET_WIF, decode_wif, encode_wif
 
@@ -430,6 +431,66 @@ def cmd_header(args):
     )
 
 
+
+def cmd_tx(args):
+    try:
+        tx = parse_transaction(args.data)
+    except (TypeError, ValueError) as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    outputs = [
+        {"value": vout.value, "scriptpubkey": vout.script_pubkey.hex()}
+        for vout in tx.outputs
+    ]
+    inputs = []
+    for vin in tx.inputs:
+        item = {
+            "txid": vin.prev_txid,
+            "vout": vin.prev_index,
+            "sequence": vin.sequence,
+            "script_sig": vin.script_sig.hex(),
+        }
+        if vin.witness:
+            item["witness"] = [part.hex() for part in vin.witness]
+        inputs.append(item)
+    lines = [
+        f"version: {tx.version}",
+        f"segwit: {'yes' if tx.segwit else 'no'}",
+        f"coinbase: {'yes' if tx.is_coinbase else 'no'}",
+        f"inputs: {len(tx.inputs)}",
+        f"outputs: {len(tx.outputs)}",
+    ]
+    for i, vout in enumerate(tx.outputs):
+        lines.append(f"  {i}: {vout.value}")
+    lines.extend(
+        [
+            f"locktime: {tx.locktime}",
+            f"txid: {tx.txid()}",
+            f"wtxid: {tx.wtxid()}",
+            f"size: {tx.size()}",
+            f"weight: {tx.weight()}",
+            f"vsize: {tx.vsize()}",
+        ]
+    )
+    _emit(
+        args,
+        text="\n".join(lines),
+        data={
+            "version": tx.version,
+            "segwit": tx.segwit,
+            "coinbase": tx.is_coinbase,
+            "locktime": tx.locktime,
+            "txid": tx.txid(),
+            "wtxid": tx.wtxid(),
+            "size": tx.size(),
+            "weight": tx.weight(),
+            "vsize": tx.vsize(),
+            "inputs": inputs,
+            "outputs": outputs,
+        },
+    )
+
+
 def main(argv=None):
     shared = argparse.ArgumentParser(add_help=False)
     # default=SUPPRESS so a --json before the subcommand is not
@@ -527,6 +588,12 @@ def main(argv=None):
                        help="parse an 80-byte block header and check its proof of work")
     p.add_argument("data", type=parse_hex, help="80-byte block header as hex")
     p.set_defaults(func=cmd_header)
+
+
+    p = sub.add_parser("tx", parents=[shared],
+                       help="parse a raw Bitcoin transaction and print its txid")
+    p.add_argument("data", type=parse_hex, help="raw transaction as hex")
+    p.set_defaults(func=cmd_tx)
 
     args = parser.parse_args(argv)
     return args.func(args) or 0

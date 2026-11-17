@@ -3,7 +3,7 @@
 Small Python implementations of the hashing and encoding pieces behind
 Bitcoin addresses: SHA-256d, HASH160, Base58Check, Bech32, Bech32m, Wallet
 Import Format, CompactSize varints, signed-message hashing, txid byte
-order, BIP 39 mnemonic-to-seed, BIP 32 extended keys, block headers, and P2PKH/P2SH/P2WPKH/P2WSH/P2TR address
+order, BIP 39 mnemonic-to-seed, BIP 32 extended keys, block headers, raw transactions, and P2PKH/P2SH/P2WPKH/P2WSH/P2TR address
 construction. Written while going through Mastering Bitcoin. Standard
 library only.
 
@@ -40,6 +40,7 @@ python -m btcbasics seed "abandon abandon abandon abandon abandon abandon abando
 python -m btcbasics xkey master 000102030405060708090a0b0c0d0e0f
 python -m btcbasics xkey decode xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi
 python -m btcbasics header 0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c
+python -m btcbasics tx 01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000
 ```
 
 Hex arguments accept a `0x` prefix and surrounding whitespace. `decode`
@@ -87,6 +88,11 @@ than or equal to the target decoded from compact nBits. The genesis header
 and block 170 are used as test vectors. Difficulty is the genesis target
 divided by the header's target, so genesis has difficulty 1.
 
+`tx` parses a raw transaction, including SegWit marker, flag and witness
+data. It prints the version, input and output counts, locktime, txid,
+wtxid, size, weight and vsize. The tests use the genesis coinbase and the
+first confirmed SegWit transaction (block 481,824).
+
 `address p2pkh` takes a 20-byte HASH160 or a 33/65-byte public key.
 `address p2sh` takes a 20-byte script hash. `address p2wpkh` takes a
 20-byte HASH160 or a 33-byte compressed public key. `address p2wsh`
@@ -100,7 +106,7 @@ Errors still go to stderr as text.
 The same helpers are available as a library:
 
 ```
-from btcbasics import address_to_scriptpubkey, encode_compact_size, identify_address, master_from_seed, mnemonic_to_seed, parse_block_header, p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d, signed_message_hash, txid_from_hash
+from btcbasics import address_to_scriptpubkey, encode_compact_size, identify_address, master_from_seed, mnemonic_to_seed, parse_block_header, parse_transaction, p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d, signed_message_hash, txid_from_hash
 ```
 
 The package ships a `py.typed` marker so type checkers can use the
@@ -117,7 +123,7 @@ Pushes and pull requests also run that suite on Python 3.9, 3.11 and 3.13
 via GitHub Actions.
 
 The tests use published vectors, including the genesis block header and hash, the
-address it paid to, the genesis coinbase txid, a well-known WIF key,
+address it paid to, the genesis coinbase transaction, the first SegWit transaction, a well-known WIF key,
 Bitcoin Core's CompactSize
 canonical and non-canonical cases, the official BIP 39 English mnemonic
 and xprv vectors, the official BIP 32 extended-key strings, the official BIP 173 Bech32 / SegWit v0 addresses, and the

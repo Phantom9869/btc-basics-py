@@ -7,6 +7,7 @@ from .base58 import b58decode, b58decode_check, b58encode, b58encode_check
 from .hashes import hash160, sha256, sha256d
 from .message import MESSAGE_MAGIC, signed_message_hash
 from .txid import hash_from_txid, txid_from_hash
+from .tx import Transaction, TxIn, TxOut, parse_transaction
 from .varint import decode_compact_size, encode_compact_size
 from .wif import WIFKey, decode_wif, encode_wif
 
@@ -25,6 +26,9 @@ __all__ = [
     "bech32m_decode",
     "bech32m_encode",
     "SegwitAddress",
+    "Transaction",
+    "TxIn",
+    "TxOut",
     "convertbits",
     "decode_segwit_address",
     "encode_segwit_address",
@@ -37,6 +41,7 @@ __all__ = [
     "p2wpkh_address",
     "p2wsh_address",
     "parse_block_header",
+    "parse_transaction",
     "scriptpubkey_to_address",
     "b58decode",
     "b58decode_check",
