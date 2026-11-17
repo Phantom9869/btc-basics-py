@@ -468,3 +468,37 @@ def test_json_xkey_master(capsys):
     assert data["depth"] == 0
     assert data["hardened"] is False
     assert "private_key" in data
+
+
+GENESIS_HEADER = (
+    "0100000000000000000000000000000000000000000000000000000000000000"
+    "000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa"
+    "4b1e5e4a29ab5f49ffff001d1dac2b7c"
+)
+GENESIS_HASH = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
+
+
+def test_header_genesis(capsys):
+    assert main(["header", GENESIS_HEADER]) == 0
+    out = capsys.readouterr().out
+    assert "version: 1" in out
+    assert f"hash: {GENESIS_HASH}" in out
+    assert "bits: 0x1d00ffff" in out
+    assert "difficulty: 1" in out
+    assert "meets target: yes" in out
+    assert "nonce: 2083236893" in out
+
+
+def test_header_rejects_short(capsys):
+    assert main(["header", "00" * 79]) == 1
+    assert "80 bytes" in capsys.readouterr().err
+
+
+def test_json_header_genesis(capsys):
+    assert main(["--json", "header", "0x" + GENESIS_HEADER]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["hash"] == GENESIS_HASH
+    assert data["difficulty"] == "1"
+    assert data["meets_target"] is True
+    assert data["version"] == 1
+    assert data["nonce"] == 2083236893

@@ -3,7 +3,7 @@
 Small Python implementations of the hashing and encoding pieces behind
 Bitcoin addresses: SHA-256d, HASH160, Base58Check, Bech32, Bech32m, Wallet
 Import Format, CompactSize varints, signed-message hashing, txid byte
-order, BIP 39 mnemonic-to-seed, BIP 32 extended keys, and P2PKH/P2SH/P2WPKH/P2WSH/P2TR address
+order, BIP 39 mnemonic-to-seed, BIP 32 extended keys, block headers, and P2PKH/P2SH/P2WPKH/P2WSH/P2TR address
 construction. Written while going through Mastering Bitcoin. Standard
 library only.
 
@@ -39,6 +39,7 @@ python -m btcbasics txid 3ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8a
 python -m btcbasics seed "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" --passphrase TREZOR
 python -m btcbasics xkey master 000102030405060708090a0b0c0d0e0f
 python -m btcbasics xkey decode xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi
+python -m btcbasics header 0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c
 ```
 
 Hex arguments accept a `0x` prefix and surrounding whitespace. `decode`
@@ -80,6 +81,12 @@ BIP 32 specifies. Child-key derivation is not included, because it needs
 elliptic-curve point arithmetic; the official serialization vectors and
 BIP 39 `xprv` strings are enough to check the format itself.
 
+`header` parses an 80-byte block header, prints its fields, and checks the
+proof of work: SHA256d of the header (in display byte order) must be less
+than or equal to the target decoded from compact nBits. The genesis header
+and block 170 are used as test vectors. Difficulty is the genesis target
+divided by the header's target, so genesis has difficulty 1.
+
 `address p2pkh` takes a 20-byte HASH160 or a 33/65-byte public key.
 `address p2sh` takes a 20-byte script hash. `address p2wpkh` takes a
 20-byte HASH160 or a 33-byte compressed public key. `address p2wsh`
@@ -93,7 +100,7 @@ Errors still go to stderr as text.
 The same helpers are available as a library:
 
 ```
-from btcbasics import address_to_scriptpubkey, encode_compact_size, identify_address, master_from_seed, mnemonic_to_seed, p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d, signed_message_hash, txid_from_hash
+from btcbasics import address_to_scriptpubkey, encode_compact_size, identify_address, master_from_seed, mnemonic_to_seed, parse_block_header, p2pkh_address, p2tr_address, p2wpkh_address, encode_wif, sha256d, signed_message_hash, txid_from_hash
 ```
 
 The package ships a `py.typed` marker so type checkers can use the
@@ -109,7 +116,7 @@ pytest
 Pushes and pull requests also run that suite on Python 3.9, 3.11 and 3.13
 via GitHub Actions.
 
-The tests use published vectors, including the genesis block hash, the
+The tests use published vectors, including the genesis block header and hash, the
 address it paid to, the genesis coinbase txid, a well-known WIF key,
 Bitcoin Core's CompactSize
 canonical and non-canonical cases, the official BIP 39 English mnemonic

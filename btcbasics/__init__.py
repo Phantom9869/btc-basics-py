@@ -1,5 +1,6 @@
 from .address import AddressInfo, SegwitAddress, address_to_scriptpubkey, decode_segwit_address, encode_segwit_address, identify_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address, scriptpubkey_to_address
 from .bip32 import ExtendedKey, decode_extended_key, encode_extended_key, master_from_seed
+from .block import BlockHeader, bits_to_target, parse_block_header, target_to_bits, target_to_difficulty
 from .bip39 import ENGLISH_WORDLIST_SHA256, english_wordlist, entropy_to_mnemonic, mnemonic_to_entropy, mnemonic_to_seed
 from .bech32 import BECH32, BECH32M, bech32_decode, bech32_decode_any, bech32_encode, bech32m_decode, bech32m_encode, convertbits
 from .base58 import b58decode, b58decode_check, b58encode, b58encode_check
@@ -16,6 +17,7 @@ __all__ = [
     "address_to_scriptpubkey",
     "BECH32",
     "BECH32M",
+    "BlockHeader",
     "WIFKey",
     "bech32_decode",
     "bech32_decode_any",
@@ -34,11 +36,13 @@ __all__ = [
     "p2tr_address",
     "p2wpkh_address",
     "p2wsh_address",
+    "parse_block_header",
     "scriptpubkey_to_address",
     "b58decode",
     "b58decode_check",
     "b58encode",
     "b58encode_check",
+    "bits_to_target",
     "decode_compact_size",
     "decode_extended_key",
     "decode_wif",
@@ -54,5 +58,7 @@ __all__ = [
     "sha256",
     "sha256d",
     "signed_message_hash",
+    "target_to_bits",
+    "target_to_difficulty",
     "txid_from_hash",
 ]

@@ -3,6 +3,7 @@ import json
 import sys
 
 from .bip32 import decode_extended_key, encode_extended_key, master_from_seed
+from .block import parse_block_header
 from .bip39 import mnemonic_to_entropy, mnemonic_to_seed
 from .address import address_to_scriptpubkey, decode_segwit_address, identify_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address, scriptpubkey_to_address, segwit_script_type
 from .base58 import b58decode_check, b58encode_check
@@ -387,6 +388,48 @@ def cmd_xkey_master(args):
     _emit(args, text=encoded, data=_xkey_data(key))
 
 
+
+def cmd_header(args):
+    try:
+        header = parse_block_header(args.data)
+    except (TypeError, ValueError) as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    digest = header.block_hash()
+    target = f"{header.target():064x}"
+    difficulty = format(header.difficulty(), "f")
+    if "." in difficulty:
+        difficulty = difficulty.rstrip("0").rstrip(".")
+    meets = header.meets_target()
+    _emit(
+        args,
+        text=(
+            f"version: {header.version}\n"
+            f"previous: {header.prev_block_hash()}\n"
+            f"merkle root: {header.merkle_root_hash()}\n"
+            f"timestamp: {header.timestamp}\n"
+            f"bits: 0x{header.bits:08x}\n"
+            f"nonce: {header.nonce}\n"
+            f"hash: {digest}\n"
+            f"target: {target}\n"
+            f"difficulty: {difficulty}\n"
+            f"meets target: {'yes' if meets else 'no'}"
+        ),
+        data={
+            "version": header.version,
+            "previous": header.prev_block_hash(),
+            "merkle_root": header.merkle_root_hash(),
+            "timestamp": header.timestamp,
+            "bits": header.bits,
+            "nonce": header.nonce,
+            "hash": digest,
+            "target": target,
+            "difficulty": difficulty,
+            "meets_target": meets,
+        },
+    )
+
+
 def main(argv=None):
     shared = argparse.ArgumentParser(add_help=False)
     # default=SUPPRESS so a --json before the subcommand is not
@@ -478,6 +521,12 @@ def main(argv=None):
     pm.add_argument("seed", type=parse_hex, help="BIP 32 or BIP 39 seed as hex")
     pm.add_argument("--testnet", action="store_true")
     pm.set_defaults(func=cmd_xkey_master)
+
+
+    p = sub.add_parser("header", parents=[shared],
+                       help="parse an 80-byte block header and check its proof of work")
+    p.add_argument("data", type=parse_hex, help="80-byte block header as hex")
+    p.set_defaults(func=cmd_header)
 
     args = parser.parse_args(argv)
     return args.func(args) or 0
