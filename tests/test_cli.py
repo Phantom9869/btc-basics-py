@@ -415,3 +415,56 @@ def test_json_seed(capsys):
         "entropy": "00" * 16,
         "words": 12,
     }
+
+
+
+XPRV_V1 = (
+    "xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvv"
+    "NKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi"
+)
+XPUB_V1 = (
+    "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ES"
+    "FjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8"
+)
+BIP32_SEED = "000102030405060708090a0b0c0d0e0f"
+
+
+def test_xkey_master(capsys):
+    assert main(["xkey", "master", BIP32_SEED]) == 0
+    assert capsys.readouterr().out.strip() == XPRV_V1
+
+
+def test_xkey_master_testnet(capsys):
+    assert main(["xkey", "master", BIP32_SEED, "--testnet"]) == 0
+    assert capsys.readouterr().out.strip().startswith("tprv")
+
+
+def test_xkey_decode(capsys):
+    assert main(["xkey", "decode", XPRV_V1]) == 0
+    out = capsys.readouterr().out
+    assert "type: mainnet xprv" in out
+    assert "depth: 0" in out
+    assert "fingerprint: 00000000" in out
+    assert "child: 0" in out
+
+
+def test_xkey_decode_xpub(capsys):
+    assert main(["xkey", "decode", XPUB_V1]) == 0
+    out = capsys.readouterr().out
+    assert "type: mainnet xpub" in out
+    assert "public key:" in out
+
+
+def test_xkey_decode_rejects_bad_checksum(capsys):
+    assert main(["xkey", "decode", XPRV_V1[:-1] + "L"]) == 1
+    assert "invalid:" in capsys.readouterr().err
+
+
+def test_json_xkey_master(capsys):
+    assert main(["--json", "xkey", "master", BIP32_SEED]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["encoded"] == XPRV_V1
+    assert data["type"] == "mainnet xprv"
+    assert data["depth"] == 0
+    assert data["hardened"] is False
+    assert "private_key" in data

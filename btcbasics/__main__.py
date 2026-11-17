@@ -2,6 +2,7 @@ import argparse
 import json
 import sys
 
+from .bip32 import decode_extended_key, encode_extended_key, master_from_seed
 from .bip39 import mnemonic_to_entropy, mnemonic_to_seed
 from .address import address_to_scriptpubkey, decode_segwit_address, identify_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address, scriptpubkey_to_address, segwit_script_type
 from .base58 import b58decode_check, b58encode_check
@@ -333,6 +334,59 @@ def cmd_seed(args):
     )
 
 
+
+def _xkey_data(key):
+    data = {
+        "type": f"{key.network} {key.prefix}",
+        "depth": key.depth,
+        "fingerprint": key.fingerprint.hex(),
+        "child": key.child,
+        "hardened": key.hardened,
+        "chain_code": key.chain_code.hex(),
+        "encoded": encode_extended_key(key),
+    }
+    if key.private:
+        data["private_key"] = key.key.hex()
+    else:
+        data["public_key"] = key.key.hex()
+    return data
+
+
+def _xkey_text(key):
+    child = f"{key.child_index}h" if key.hardened else str(key.child)
+    lines = [
+        f"type: {key.network} {key.prefix}",
+        f"depth: {key.depth}",
+        f"fingerprint: {key.fingerprint.hex()}",
+        f"child: {child}",
+        f"chain code: {key.chain_code.hex()}",
+    ]
+    if key.private:
+        lines.append(f"private key: {key.key.hex()}")
+    else:
+        lines.append(f"public key: {key.key.hex()}")
+    return "\n".join(lines)
+
+
+def cmd_xkey_decode(args):
+    try:
+        key = decode_extended_key(args.key)
+    except (TypeError, ValueError) as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    _emit(args, text=_xkey_text(key), data=_xkey_data(key))
+
+
+def cmd_xkey_master(args):
+    try:
+        key = master_from_seed(args.seed, testnet=args.testnet)
+    except (TypeError, ValueError) as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    encoded = encode_extended_key(key)
+    _emit(args, text=encoded, data=_xkey_data(key))
+
+
 def main(argv=None):
     shared = argparse.ArgumentParser(add_help=False)
     # default=SUPPRESS so a --json before the subcommand is not
@@ -412,6 +466,18 @@ def main(argv=None):
     p.add_argument("mnemonic", help="12 to 24 BIP 39 English words")
     p.add_argument("--passphrase", default="", help="optional BIP 39 passphrase")
     p.set_defaults(func=cmd_seed)
+
+
+    p = sub.add_parser("xkey", parents=[shared],
+                       help="decode a BIP 32 extended key or derive a master key from a seed")
+    xkey_sub = p.add_subparsers(dest="xkey_command", required=True)
+    pd = xkey_sub.add_parser("decode", parents=[shared], help="decode an xprv, xpub, tprv or tpub")
+    pd.add_argument("key", help="BIP 32 extended key")
+    pd.set_defaults(func=cmd_xkey_decode)
+    pm = xkey_sub.add_parser("master", parents=[shared], help="derive the master xprv from a seed")
+    pm.add_argument("seed", type=parse_hex, help="BIP 32 or BIP 39 seed as hex")
+    pm.add_argument("--testnet", action="store_true")
+    pm.set_defaults(func=cmd_xkey_master)
 
     args = parser.parse_args(argv)
     return args.func(args) or 0
