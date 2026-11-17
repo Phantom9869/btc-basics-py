@@ -5,6 +5,7 @@ import sys
 from .bip32 import decode_extended_key, encode_extended_key, master_from_seed
 from .block import parse_block_header
 from .bip39 import mnemonic_to_entropy, mnemonic_to_seed
+from .amount import btc_to_sats, format_btc, sats_to_btc
 from .address import address_to_scriptpubkey, decode_segwit_address, identify_address, p2pkh_address, p2sh_address, p2tr_address, p2wpkh_address, p2wsh_address, scriptpubkey_to_address, segwit_script_type
 from .base58 import b58decode_check, b58encode_check
 from .hashes import hash160, sha256, sha256d
@@ -491,6 +492,26 @@ def cmd_tx(args):
     )
 
 
+
+def cmd_amount(args):
+    try:
+        if args.from_sats:
+            raw = args.amount.strip()
+            if not raw.isdigit() or (raw.startswith("0") and raw != "0"):
+                raise ValueError("satoshi amounts must be a decimal integer")
+            sats = int(raw, 10)
+            btc = format_btc(sats)
+            text = btc
+        else:
+            sats = btc_to_sats(args.amount)
+            btc = format_btc(sats)
+            text = str(sats)
+    except (TypeError, ValueError) as e:
+        print(f"invalid: {e}", file=sys.stderr)
+        return 1
+    _emit(args, text=text, data={"btc": btc, "satoshis": sats})
+
+
 def main(argv=None):
     shared = argparse.ArgumentParser(add_help=False)
     # default=SUPPRESS so a --json before the subcommand is not
@@ -594,6 +615,14 @@ def main(argv=None):
                        help="parse a raw Bitcoin transaction and print its txid")
     p.add_argument("data", type=parse_hex, help="raw transaction as hex")
     p.set_defaults(func=cmd_tx)
+
+
+    p = sub.add_parser("amount", parents=[shared],
+                       help="convert between BTC and satoshis")
+    p.add_argument("amount", help="BTC amount, or satoshis with --from-sats")
+    p.add_argument("--from-sats", action="store_true",
+                   help="treat the argument as satoshis and print BTC")
+    p.set_defaults(func=cmd_amount)
 
     args = parser.parse_args(argv)
     return args.func(args) or 0

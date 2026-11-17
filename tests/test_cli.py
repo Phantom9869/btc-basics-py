@@ -539,3 +539,24 @@ def test_json_tx_genesis(capsys):
     assert data["coinbase"] is True
     assert data["segwit"] is False
     assert data["outputs"][0]["value"] == 5_000_000_000
+
+
+def test_amount_btc(capsys):
+    assert main(["amount", "50"]) == 0
+    assert capsys.readouterr().out.strip() == "5000000000"
+
+
+def test_amount_from_sats(capsys):
+    assert main(["amount", "5000000000", "--from-sats"]) == 0
+    assert capsys.readouterr().out.strip() == "50"
+
+
+def test_amount_rejects_too_many_decimals(capsys):
+    assert main(["amount", "0.000000001"]) == 1
+    assert "invalid:" in capsys.readouterr().err
+
+
+def test_json_amount(capsys):
+    assert main(["--json", "amount", "0.00311"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data == {"btc": "0.00311", "satoshis": 311000}
